@@ -23,7 +23,7 @@ jobs:
       short_sha:    ${{ steps.check.outputs.short_sha }}
       full_sha:     ${{ steps.check.outputs.full_sha }}
       build_label:  ${{ steps.check.outputs.build_label }}
-
+    #hop
     steps:
       - name: Checkout develop
         uses: actions/checkout@v6
