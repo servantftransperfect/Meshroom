@@ -195,6 +195,13 @@ def setupEnvironment(backend=Backend.STANDALONE):
             logging.debug(f"Add to {key}: {value}")
             addToEnvPath(key, value, 0)
 
+        # Bundled portable git (Windows), needed by "uv" for "git+..." plugin dependencies.
+        # Appended to PATH, so that a git installed on the system takes precedence.
+        gitCmdDir = os.path.join(rootDir, "git", "cmd")
+        if os.path.isdir(gitCmdDir):
+            logging.debug(f"Add to PATH: {gitCmdDir}")
+            addToEnvPath("PATH", gitCmdDir)
+
         variables = {
             "MESHROOM_UV_PATH": uvPath,
             "ALICEVISION_ROOT": aliceVisionDir,
