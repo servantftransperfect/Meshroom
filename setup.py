@@ -2,6 +2,7 @@ import os
 import pathlib
 import platform
 import subprocess
+import sys
 import setuptools  # for bdist
 from cx_Freeze import setup, Executable
 from cx_Freeze.command.build_exe import build_exe
@@ -89,7 +90,7 @@ build_exe_options = {
         "filecmp",
         "logging.handlers",
         "cmath",
-        "numpy"
+        "numpy",
     ],
     "include_files": ["CHANGES.md", "COPYING.md", "LICENSE-MPL2.md", "README.md", "bin",
                       (str(uvPath), f"bin/{uvPath.name}")],
@@ -127,6 +128,10 @@ build_exe_options = {
         "PySide6.QtAxContainer",
     ],
 }
+# Imported lazily: verifies HTTPS certificates with the OS trust store (plugin manager).
+# Only available (and required) on Python >= 3.10, see requirements.txt.
+if sys.version_info >= (3, 10):
+    build_exe_options["includes"].append("truststore")
 if os.path.isdir(os.path.join(currentDir, "tractor")):
     build_exe_options["packages"].append("tractor")
 if os.path.isdir(os.path.join(currentDir, "simpleFarm")):

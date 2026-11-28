@@ -49,6 +49,8 @@ Where this map and the actual tree diverge, trust the tree — then update the m
 │   └── multiview.py            # Image-extension lists & helpers for building multiview/photogrammetry pipelines
 ├── plugins/                    # Runtime local plugins folder (git-ignored): registries + installed plugins; seeded
 │                               # from meshroom/core/plugins/registries/ on first run. Created next to the executables in release.
+│                               # Plugin dependencies are installed with the bundled "uv"; Windows releases also bundle a
+│                               # portable git (MinGit, GPLv2, unmodified) in git/, appended to PATH by meshroom/__init__.py.
 ├── tests/                      # Comprehensive suite of unit tests and pipeline validation tests
 ├── CHANGES.md                  # Changelog tracking features, optimizations, and API breaks
 ├── CMakeLists.txt              # Build system file for compiling external modules/packaging
