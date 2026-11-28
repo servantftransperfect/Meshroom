@@ -1,5 +1,7 @@
 import hashlib
 import http.client
+import logging
+import ssl
 import urllib.error
 import urllib.request
 
@@ -15,6 +17,33 @@ _HTTP_REQUEST_TIMEOUT = 10
 _HTTP_CHUNK_SIZE = 64 * 1024
 # Network failures that urllib does not always wrap in a URLError (e.g. TimeoutError).
 _HTTP_NETWORK_ERRORS = (OSError, http.client.HTTPException)
+
+
+def _createSslContext() -> ssl.SSLContext:
+    """
+    Create the SSL context used for HTTPS requests.
+
+    Certificates are verified by the OS through "truststore" when it is available: the default context
+    only knows the root certificates already present in the OS store, which misses the ones Windows
+    downloads on demand (e.g. on a fresh install) and fails with CERTIFICATE_VERIFY_FAILED.
+
+    Returns:
+        ssl.SSLContext: the SSL context.
+    """
+    try:
+        import truststore
+    except ImportError:
+        logging.debug("'truststore' is not available, using the default SSL context.")
+        return ssl.create_default_context()
+    try:
+        return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    except Exception as exc:
+        # Never break the import of this module: fall back on the default verification
+        logging.warning(f"Failed to create the 'truststore' SSL context ({exc}), using the default SSL context.")
+        return ssl.create_default_context()
+
+
+_SSL_CONTEXT = _createSslContext()
 
 
 class RequestError(Exception):
@@ -43,7 +72,7 @@ def _open(url: str, timeout: float):
         RequestError: if the request fails.
     """
     try:
-        with urllib.request.urlopen(url, timeout=timeout) as response:
+        with urllib.request.urlopen(url, timeout=timeout, context=_SSL_CONTEXT) as response:
             yield response
     except urllib.error.HTTPError as exc:
         raise RequestError(str(exc), code=exc.code) from exc
@@ -110,8 +139,8 @@ def etagMatch(url: str, etag: str) -> bool:
     """
     request = urllib.request.Request(url, headers={"If-None-Match": etag})
     try:
-        urllib.request.urlopen(request, timeout=_HTTP_REQUEST_TIMEOUT)
-        return False
+        with urllib.request.urlopen(request, timeout=_HTTP_REQUEST_TIMEOUT, context=_SSL_CONTEXT):
+            return False
     except urllib.error.HTTPError as exc:
         return exc.code == 304
     except _HTTP_NETWORK_ERRORS:
@@ -132,7 +161,7 @@ def fetchStatus(url: str, method: str = "GET", timeout: float = _HTTP_REQUEST_TI
     """
     request = urllib.request.Request(url, method=method)
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
+        with urllib.request.urlopen(request, timeout=timeout, context=_SSL_CONTEXT) as response:
             return response.status
     except urllib.error.HTTPError as exc:
         return exc.code
